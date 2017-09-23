@@ -109,7 +109,7 @@ class HYHttpServer {
 
         //如果文件名存在
         fs.exists(filePath, function (exists) {
-            if (exists) {
+            if (exists && path.extname(filePath) != '') {
                 response.writeHead(200, { "content-type": contentType });
                 if (path.extname(filePath) == ".nsp") {
                     // nsp程序
@@ -180,29 +180,31 @@ class HYHttpServer {
                     stream.pipe(response);
                 }
             } else { //文件名不存在的情况
-                if (path.extname(filePath) != '' || !self.config.applyDir) {
+                if (path.extname(filePath) != '' || !self.m_config.applyDir) {
                     //如果这个文件不是程序自动添加的，直接返回404
                     response.writeHead(404, { "content-type": "text/html" });
                     response.end("<h1>404 Not Found</h1>");
                 } else {
+                    response.writeHead(200, { "content-type": "text/html" });
                     //如果文件是程序自动添加的且不存在，则表示用户希望访问的是该目录下的文件列表
                     var html = "<head><meta charset='utf-8'></head>";
-
                     try {
                         //用户访问目录
                         var filedir = filePath.substring(0, filePath.lastIndexOf('\\'));
                         //获取用户访问路径下的文件列表
-                        var files = fs.readdirSync(filedir);
-                        //将访问路径下的所以文件一一列举出来，并添加超链接，以便用户进一步访问
-                        for (var i in files) {
-                            var filename = files[i];
-                            html += "<div><a  href='" + filename + "'>" + filename + "</a></div>";
-                        }
+                        fs.readdir(filedir, (err, data) => {
+                            //将访问路径下的所以文件一一列举出来，并添加超链接，以便用户进一步访问
+                            for (var i in data) {
+                                var filename = data[i];
+                                html += "<div><a  href='" + filename + "'>" + filename + "</a></div>";
+                            }
+                            response.end(html);
+                        });
+
                     } catch (e) {
                         html += "<h1>您访问的目录不存在</h1>"
+                        response.end(html);
                     }
-                    response.writeHead(200, { "content-type": "text/html" });
-                    response.end(html);
                 }
             }
         });
