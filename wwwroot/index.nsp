@@ -1,0 +1,27 @@
+<%const crypto = require('crypto');
+
+                        let md5sum = crypto.createHash('md5');
+                        md5sum.update("test");
+                        let fname = md5sum.digest('hex')
+                        let objtest = {"aaa":100, bbb:1000};
+                        let times = request.query["times"] || 2;
+%>
+<html lang="en"> 
+<head> 
+<meta charset="utf-8"/> 
+<title>判断是否是微信内置浏览器</title> 
+</head> 
+<body> 
+
+<img src="mahjong/sharepage/bg1.png"/>
+<%= objtest%>
+<% for (let i = 0; i < times; ++i){%>
+<h1>如果用微信浏览器打开可以看到下面的文字</h1> 
+<p>ddddddd</p> 
+<%=1000%>
+<%=times+1%>
+<%}%>
+
+<%=fname%>
+</body> 
+</html> 

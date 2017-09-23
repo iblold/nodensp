@@ -1,0 +1,19 @@
+{
+  "name": "HYHttpServer",
+  "version": "0.0.1",
+  "description": "HYHttpServer",
+  "main": "nspinterpreter.js",
+  "dependencies": {
+    "iconv-lite": "^0.4.19",
+    "mysql": "^2.14.1",
+    "progress": "^2.0.0",
+    "rd": "^1.1.2",
+    "redis": "^2.8.0"
+  },
+  "author": {
+    "name": "iblold",
+    "email": "iblold@gmail.com"
+  },
+  "repository": {},
+  "license": "MIT"
+}
