@@ -18,6 +18,12 @@ var s_clientsArray = [];
 // 网络消息回调函数表
 var s_msgCallbackMap = new Map();
 
+var s_onCloseCallback = null;
+
+var s_onConnectCallback = null;
+
+var s_onErrorCallback = null;
+
 // 服务器实例
 var s_server = null;
 
@@ -38,7 +44,7 @@ var dispatchNetMsg = function(client, buff){
         let dc = s_msgCallbackMap.get(id);
         dc.callback(client, new dc.msgtemp(buff));
     } else {
-        logg(logError, "wrong packet type: " + id + " from " + client.addrDesc);
+        logg(logError, "packet type don't exist in callback map: " + id + " from " + client.addrDesc);
     }
 }
 
@@ -77,11 +83,15 @@ var setConn = function (client) {
     client.recvBuffer = Buffer.alloc(MaxPacketSize * 4);
     client.recvUsed = 0;
 
+    client.sendList = [];
+
     // 发送消息包
     client.sendMsg = function (msg) {
-        if (checkMsg(msg)) {
+        if (checkMsg(msg) && client && client.write instanceof Function) {
             logg(logDebug, msg.getMsgName() + ":" + msg.getMsgLength());
-            client.write(msg.getBytes().slice(0, msg.getMsgLength()));
+            if (!client.write(msg.getBytes().slice(0, msg.getMsgLength()))) {
+                client.sendList.push(msg);
+            };
         }
     }
 
@@ -96,6 +106,10 @@ var setConn = function (client) {
     s_clientsArray.push(client);
 
     logg(logInfo, client.addrDesc + " connected.");
+
+    if (s_onConnectCallback) {
+        s_onConnectCallback(client);
+    }
 
     // 检测消息包头标志
     var checkFlag = function (buff) { return buff.readUInt8(0) == 0xbd; }
@@ -157,6 +171,10 @@ var setConn = function (client) {
         s_clientsArray.splice(s_clientsArray.indexOf(client), 1);
         logg(logInfo, client.addrDesc + " closed.");
 
+        if (s_onCloseCallback) {
+            s_onCloseCallback(client);
+        }
+
         client.destroy();
         client = null;
     });
@@ -169,8 +187,23 @@ var setConn = function (client) {
         if (error.code == "ECONNRESET")
             loglev = logInfo;
 
+        if (s_onErrorCallback) {
+            s_onErrorCallback(client);
+        }
+
         logg(loglev, client.addrDesc + error.toString());
     }); 
+}
+
+exports.tick = function () {
+    for (let i = 0; i < s_clientsArray.length; ++i) {
+        client = s_clientsArray[i];
+        client.sendList = [];
+        /*for (let j = 0; j < buff.length; ++j) {
+            msg = buff[j];
+            client.sendMsg(msg);
+        }*/
+    }
 }
 
 // 启动服务器
@@ -223,11 +256,14 @@ exports.onMessage = function (msg, cb) {
     logg(logError, "onMessage arg msg error");
 }
 
-exports.onClose = function () {
+exports.onClose = function (cb) {
+    s_onCloseCallback = cb;
 }
 
-exports.onConnect = function () {
+exports.onConnect = function (cb) {
+    s_onConnectCallback = cb;
 }
 
-exports.onError = function () {
+exports.onError = function (cb) {
+    s_onErrorCallback = cb;
 }

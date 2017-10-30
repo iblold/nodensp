@@ -35,45 +35,44 @@ var LogDir = LogDir || "./log";
 	
 	// 取当前时间字符串
 	getDateTime = function (t) {
-		
         let date = new Date();
         let s = [];
-        
+
         s[0] = date.getFullYear();
-        
+
         s[1] = date.getMonth() + 1;
         s[1] = (s[1] < 10 ? "0" : "") + s[1];
-        
+
         s[2] = date.getDate();
         s[2] = (s[2] < 10 ? "0" : "") + s[2];
-		
-		s[3] = date.getHours();
+
+        s[3] = date.getHours();
         s[3] = (s[3] < 10 ? "0" : "") + s[3];
-        
+
         s[4] = date.getMinutes();
         s[4] = (s[4] < 10 ? "0" : "") + s[4];
-        
+
         s[5] = date.getSeconds();
         s[5] = (s[5] < 10 ? "0" : "") + s[5];
-        
-		if (t== null || t <= 0 || t > 6)
-			t = 6;
-		
-		let ret = "";
-		let n = t - 1;
-		for(let i = 0; i < t; i++){
-			
-			ret += s[i];
-			if (i < 2 && i != n){
-				ret += "-"
-			} else if (i == 2){
-				ret += " ";
-			} else if (i < 5 && i != n){
-				ret += ":";
-			}	
-		}
-		
-		return ret;
+
+        if (t == null || t <= 0 || t > 6)
+            t = 6;
+
+        let ret = "";
+        let n = t - 1;
+        for (let i = 0; i < t; i++) {
+
+            ret += s[i];
+            if (i < 2 && i != n) {
+                ret += "-"
+            } else if (i == 2) {
+                ret += " ";
+            } else if (i < 5 && i != n) {
+                ret += ":";
+            }
+        }
+
+        return ret;
     }
     
     // 获得完整路径
@@ -185,17 +184,17 @@ var LogDir = LogDir || "./log";
 				let fn = LogDir + "/" + tmf + ".log";
 				filesys.open(fn, "a", function (err, fd) { 
 					if (err) {
-						console.log(Color.red("con't open log file! " + err));
+                        console.log(colors.red("con't open log file! " + err));
                     } else {
                         logFile = fd;
 						filesys.write(fd, str, 0, str.length, 0, function (err, bytes) { 
-							if (err) console.log(Color.red("con't write to log file! " + err));
+                            if (err) console.log(colors.red("con't write to log file! " + err));
 						});
 					}
 				});
 			} else {
 				filesys.write(logFile, str, 0, str.length, 0, function (err, bytes) {
-					if (err) console.log(Color.red("con't write to log file!"));
+                    if (err) console.log(colors.red("con't write to log file!"));
 				});
 			}
 		}
@@ -204,7 +203,7 @@ var LogDir = LogDir || "./log";
     loggClose = function (){
         if (logFile) {
             filesys.close(logFile, function (err) {
-                if (err) console.log(Color.red("con't close log file! " + err));
+                if (err) console.log(colors.red("con't close log file! " + err));
                 logFile = null;
             });
         }
