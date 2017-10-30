@@ -1,0 +1,44 @@
+{
+    "port": 80,       // 端口号
+
+    "root": "wwwroot",    // web文件目录，从运行目录算起
+
+    "dir_visit": true,     // 是否允许目录浏览
+    "upload_limit": 1024 * 1024 * 5,    // 上传文件最大限制
+    "compress": true,       // 静态页面是否允许压缩传输
+    "comp_ignores": [       // 要排除在压缩传输之外的文件格式
+        ".png",
+        ".jpg",
+        ".apk",
+        ".app",
+        ".webp",
+        ".gif",
+        ".zip",
+        ".rar",
+		".gz",
+		".tar"
+    ],
+
+    "default_page": [   // 目录下默认文件名
+        "index.html",
+        "index.htm",
+        "index.nsp",
+        "default.html",
+        "default.htm",
+        "default.nsp"
+    ],
+
+    "mime": {       // 文件格式
+        "nsp": "text/html",
+        "html": "text/html",
+        "js": "text/javascript",
+        "css": "text/css",
+        "gif": "image/gif",
+        "jpg": "image/jpeg",
+        "png": "image/png",
+        "ico": "image/icon",
+        "txt": "text/plain",
+        "json": "application/json",
+        "default": "application/octet-stream"
+    }
+}
