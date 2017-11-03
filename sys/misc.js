@@ -346,4 +346,62 @@ var LogDir = LogDir || "./log";
         }
         return null;
     }
+
+    uncerParamCall = function (func, params) {
+        switch (params.length) {
+            case 1:
+                func(params[0]);
+                break;
+            case 2:
+                func(params[0], params[1]);
+                break;
+            case 3:
+                func(params[0], params[1], params[2]);
+                break;
+            case 4:
+                func(params[0], params[1], params[2], params[3]);
+                break;
+            case 5:
+                func(params[0], params[1], params[2], params[3], params[4]);
+                break;
+            case 6:
+                func(params[0], params[1], params[2], params[3], params[4], params[5]);
+                break;
+            case 7:
+                func(params[0], params[1], params[2], params[3], params[4], params[5], params[6]);
+                break;
+            case 8:
+                func(params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7]);
+                break;
+            case 9:
+                func(params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]);
+                break;
+            case 10:
+                func(params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8], params[9]);
+                break;
+            default:
+                func();
+        }
+    }
+
+    fileCopy = function (src, dis, cb) {
+        fs.exists(src, exists => {
+            if (exists) {
+                let src = fs.createReadStream(src);
+                let dst = fs.createWriteStream(dst);
+                dst.on("error", err => {
+                    cb({ error: err });
+                });
+
+                dst.on("close", ex => {
+                    cb({success: true});
+                });
+
+                src.pipe(dst);
+            } else {
+                cb({ error: "src file not exists" });
+            }
+        });
+    }
+
 })();

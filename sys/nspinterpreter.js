@@ -13,7 +13,7 @@ const path = require("path");
 const crypto = require('crypto');
 
 // 获取解析后函数名的函数
-var report_this_function = null;
+global.report_this_function = null;
 
 /**
  * NspInterpreter 类
@@ -42,7 +42,7 @@ class NspInterpreter {
                         // 调用结束回调
                         let endfunc = "";
                         // 替换单斜杠为双斜杠，避免变成源码后被转义
-                        let filestr = data.toString().replace("\\", "\\\\");
+                        let filestr = data.toString();//.replace("\\", "\\\\");
 
                         // 转换<%=...%>形式为<% response.write(...); %>
                         let rwBuff = filestr.match(/(<%=[\w\s"'\(\)\+\-\*\/\^&|\?\.\{\}\[\]\\\t\r\n><%=;,:]*?%>)/g);

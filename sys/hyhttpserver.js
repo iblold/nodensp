@@ -35,6 +35,7 @@ class HYHttpServer {
     start(cb) {
         let port = this.m_config.port;
         let rootPath = this.m_config.root;
+        let self = this;
 
         global.server = {
             "root": path.normalize(process.cwd()),
@@ -44,7 +45,7 @@ class HYHttpServer {
 
         // 扫描所有nsp文件并编译
         let nps = [];
-        try{
+        try {
             rd.eachFileFilterSync(rootPath, /\.nsp$/, function (f, s) {
                 nps.push(f);
             });
@@ -53,44 +54,44 @@ class HYHttpServer {
             if (cb) cb(e);
             return;
         }
-		
-		if (nps.length > 0){
-			for (let i = 0; i < nps.length; ++i) {
-				let end = (i == nps.length - 1);
-				this.m_nps.compile(nps[i], (func, err) => {
-					if (err) {
-						logg(logError, "compile nsp file failed, error like this: ");
-						fs.writeFileSync(process.cwd()+"/errfile.js", err[1]);
 
-						require(process.cwd() + "/errfile.js");
+        if (nps.length > 0) {
+            for (let i = 0; i < nps.length; ++i) {
+                let end = (i == nps.length - 1);
+                this.m_nps.compile(nps[i], (func, err) => {
+                    if (err) {
+                        logg(logError, "compile nsp file failed, error like this: ");
+                        fs.writeFileSync(process.cwd() + "/errfile.js", err[1]);
 
-						if (cb) cb(err);
-					}
-					if (end) {
-						self.listen(port, cb);
-					}
-				});
-			}
-		} else {
-			this.listen(port, cb);
-		}
+                        require(process.cwd() + "/errfile.js");
+
+                        if (cb) cb(err);
+                    }
+                    if (end) {
+                        self.listen(port, cb);
+                    }
+                });
+            }
+        } else {
+            this.listen(port, cb);
+        }
     }
-	
-	listen(port, cb){
-		//创建一个服务
-		var httpServer = http.createServer(this.processRequest.bind(this));
 
-		httpServer.on("error", function (error) {
-			logg(logError, error);
-			if (cb) cb(error);
-		});
+    listen(port, cb) {
+        //创建一个服务
+        var httpServer = http.createServer(this.processRequest.bind(this));
 
-		//在指定的端口监听服务
-		httpServer.listen(port, function () {
-			logg(logInfo, "HYHttpServer is running on " + port);
-			if(cb) cb();
-		});
-	}
+        httpServer.on("error", function (error) {
+            logg(logError, error);
+            if (cb) cb(error);
+        });
+
+        //在指定的端口监听服务
+        httpServer.listen(port, function () {
+            logg(logInfo, "HYHttpServer is running on " + port);
+            if (cb) cb();
+        });
+    }
 
     parseMultipart(data, boundary) {
 
@@ -160,7 +161,7 @@ class HYHttpServer {
                             'disposition': curDisposition,
                             'name': curName,
                             'filename': curFilename,
-                            'data': data.slice(curDataStart, offset - 2), 
+                            'data': data.slice(curDataStart, offset - 2),
                             'type': curType
                         });
 
@@ -170,7 +171,7 @@ class HYHttpServer {
                         curDisposition = null;
                         curDataStart = 0;
 
-                    } else if (curDataStart == 0){
+                    } else if (curDataStart == 0) {
                         curDataStart = offset;
                     }
                 }
@@ -247,7 +248,10 @@ class HYHttpServer {
         // 重写response.end函数，用来计算执行时间
         response.oldend = response.end;
         response.end = function (str) {
-            this.oldend(str);
+            if (str) {
+                response.write(str);
+            }
+            this.oldend();
             this.ended = true;
             logg(logDebug, "visit " + filePath + " in " + (getTimeMS() - this.startTime) + "ms");
         }.bind(response);
@@ -280,7 +284,7 @@ class HYHttpServer {
 
                         let doNsp = function () {
                             // 填充query
-                            let par = urlstr.split("?");
+                            let par = request.url.split("?");
                             if (par.length > 1) {
                                 par[1].split("&").forEach(c => {
                                     let parts = c.split('=');
@@ -307,17 +311,20 @@ class HYHttpServer {
                             });
                         }
 
-                        if (request.method.toLowerCase() == "post") {
+                        request.method = request.method.toLowerCase();
+                        if (request.method == "post") {
                             let temp = self.parseParam('content-type=' + request.headers["content-type"], ";");
                             let ctype = temp["content-type"];
                             let boundary = temp["boundary"];
                             let clength = parseInt(request.headers["content-length"]);
 
+                            // 判断提交数据的大小，超过允许大小返回失败
                             let deflength = self.m_config.upload_limit || 0xfffffff;
                             if (clength > deflength) {
                                 response.writeHead(500, { "content-type": "text/html" });
                                 response.end("<h1>post data more then limit " + deflength + "</h1>");
-                            }else if (clength > 0) {
+                            } else if (clength > 0) {
+                                // 接收上传的数据
                                 let postData = Buffer.alloc(clength);
                                 let offset = 0;
                                 request.on("data", function (chunk) {
@@ -326,10 +333,24 @@ class HYHttpServer {
                                 });
 
                                 request.on("end", function () {
+                                    // 接收完毕开始解析
                                     if (ctype == 'application/x-www-form-urlencoded') {
-                                        request.url += ('?' + postData.toString());
+                                        request.url = decodeURIComponent(request.url + (request.url.indexOf('?') >= 0 ? '&' : '?') + postData.toString());
                                     } else if (ctype.indexOf("form-data") >= 0) {
-                                        request.postData = self.parseMultipart(postData, boundary);
+                                        // 解析multipart/form-data
+                                        let mpdata = self.parseMultipart(postData, boundary);
+                                        if (mpdata) {
+                                            // 把文件和键值对分开
+                                            request.files = [];
+                                            for (let i = 0; i < mpdata.length; ++i) {
+                                                let it = mpdata[i];
+                                                if (it.filename && it.data) {
+                                                    request.files.push({ name: it.filename, data: it.data });
+                                                } else if (it.name && it.data) {
+                                                    request.query[it.name] = it.data.toString();
+                                                }
+                                            }
+                                        }
                                     }
                                     doNsp();
                                 });
@@ -347,7 +368,7 @@ class HYHttpServer {
                         // 过期时间
                         response.setHeader("Cache-Control", "max-age=" + 24 * 3600 * 2);
 
-                        if (request.headers[ifModifiedSince] && lastModified == request.headers[ifModifiedSince]) {
+                        if (self.m_config.cache_first && request.headers[ifModifiedSince] && lastModified == request.headers[ifModifiedSince]) {
                             // 使用浏览器缓存
                             response.writeHead(304, "Not Modified");
                             response.end();
@@ -367,18 +388,19 @@ class HYHttpServer {
                                     // 不需要压缩的文件扩展名
                                     ccp = false;
                                     break;
-                                } 
+                                }
                             }
 
+                            // 压缩传输数据
                             if (ccp && acceptEncoding.match(/\bgzip\b/)) {
-                                response.writeHead(200, "Ok", { 'Content-Encoding': 'gzip', "Content-Type": contentType});
+                                response.writeHead(200, "Ok", { 'Content-Encoding': 'gzip', "Content-Type": contentType });
                                 raw.pipe(zlib.createGzip()).pipe(response);
                             } else if (ccp && acceptEncoding.match(/\bdeflate\b/)) {
-                                response.writeHead(200, "Ok", { 'Content-Encoding': 'deflate', "Content-Type": contentType});
+                                response.writeHead(200, "Ok", { 'Content-Encoding': 'deflate', "Content-Type": contentType });
                                 raw.pipe(zlib.createDeflate()).pipe(response);
                             } else {
-								
-                                response.writeHead(200, "Ok", { "Content-Type": contentType, "Content-Length" : stats.size});
+                                // 直接传输数据
+                                response.writeHead(200, "Ok", { "Content-Type": contentType, "Content-Length": stats.size });
                                 raw.pipe(response);
                             }
                         }
